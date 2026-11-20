@@ -78,10 +78,12 @@ Verified (November 2026, in a clean Linux container):
   a soul, a tampered webhook refused, and the missed-webhook sweep.
 - The full phone flow in a 390x844 browser: sphere, vault, size, cart, checkout
   to Stripe, back from Stripe with the hold released at once. No console errors.
+- `n8n/engine-events.json` imports into current n8n, activates, and routes each
+  event to its own branch (tested with order.paid, chamber.sealed, signup.created).
+  The branches are empty placeholders until the n8n prompt in `docs/PROMPTS.md`.
 
 Still not verified:
 
 - A real Stripe account (do the 4242 test-card run in the build doc).
 - The Yoycol API: its reference could not be reached, so `api/src/yoycol.js` is
   still a stub. Manual mode does not need it.
-- `n8n/engine-events.json` in your own n8n version.
