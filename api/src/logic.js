@@ -32,15 +32,19 @@ export function buildState({ cfg, db, now, unlocked = false, online = 0, checkou
   };
   const total = (pid, size) => stock.get(`${pid}|${size}`)?.total ?? 0;
 
+  const sealed = new Set(); // every piece paid for (not merely held in an open checkout)
   const chambers = cfg.chambers.map((ch) => {
-    const agg = { total: 0, remaining: 0 };
+    const agg = { total: 0, remaining: 0, sold: 0 };
     for (const p of cfg.products) {
       if (p.chamberId !== ch.id) continue;
       for (const s of p.sizes) {
+        const r = stock.get(`${p.id}|${s.size}`);
         agg.total += total(p.id, s.size);
         agg.remaining += left(p.id, s.size);
+        agg.sold += r ? Math.min(r.total, r.sold) : 0;
       }
     }
+    if (agg.total > 0 && agg.sold >= agg.total) sealed.add(ch.id);
     return {
       id: ch.id, numeral: ch.numeral, name: ch.name, frame: ch.frame, lon: ch.lon ?? 0, lat: ch.lat ?? 0,
       status: chamberStatus(ch, agg, now), goesLiveAt: ch.goesLiveAt || null,
@@ -58,7 +62,10 @@ export function buildState({ cfg, db, now, unlocked = false, online = 0, checkou
       sizes: p.sizes.map((s) => ({ size: s.size, remaining: left(p.id, s.size) })),
     }));
 
-  return { scene: cfg.scene, lore: cfg.lore, chambers, products, souls: db.souls(), now, online, checkout, unlocked };
+  const state = { scene: cfg.scene, lore: cfg.lore, chambers, products, souls: db.souls(), now, online, checkout, unlocked };
+  // Not enumerable, so it never reaches the browser in JSON.
+  Object.defineProperty(state, 'sealed', { value: sealed, enumerable: false });
+  return state;
 }
 
 /** Clean up a cart sent by a browser. Returns null if it is not a sane cart. */

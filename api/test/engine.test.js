@@ -251,3 +251,76 @@ test('thanks page shows the soul number; shop lists live products; signup is sto
   assert.equal(t.events.filter((e) => e.event === 'signup.created').length, 1);
   assert.equal((await t.post('/api/notify', { email: 'nope', chamberId: 'iii' })).statusCode, 400);
 });
+
+test('the last pieces sitting in an open checkout do not announce a seal; paying for them does', async () => {
+  const t = await setup();
+  t.watchChambers();
+  await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'M', qty: 2 }, { productId: 'tee', size: 'L', qty: 1 }] });
+  assert.equal((await t.state()).chambers.find((c) => c.id === 'iv').status, 'soldout', 'nothing left to buy while held');
+  t.watchChambers();
+  assert.equal(t.events.filter((e) => e.event === 'chamber.sealed').length, 0, 'no public SEALED post for a hold');
+  const [s] = [...t.stripe.sessions.values()];
+  await t.paid(s.id);
+  t.watchChambers();
+  t.watchChambers();
+  assert.equal(t.events.filter((e) => e.event === 'chamber.sealed').length, 1, 'sealed exactly once, when paid');
+});
+
+test('coming back from Stripe releases the hold at once; a paid order is never released', async () => {
+  const t = await setup();
+  const first = (await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'L', qty: 1 }] })).json();
+  assert.match(first.orderId, /^[0-9a-f-]{36}$/);
+  const [s1] = [...t.stripe.sessions.values()];
+  assert.match(s1.params.cancel_url, new RegExp(`released=${first.orderId}$`));
+  assert.equal(left(await t.state(), 'tee', 'L'), 0);
+  assert.deepEqual((await t.post('/api/checkout/cancel', { orderId: first.orderId })).json(), { released: true });
+  assert.equal(s1.status, 'expired', 'the Stripe page can no longer be paid');
+  assert.equal(left(await t.state(), 'tee', 'L'), 1, 'back on sale');
+  assert.deepEqual((await t.post('/api/checkout/cancel', { orderId: first.orderId })).json(), { released: false }, 'twice is harmless');
+  assert.deepEqual((await t.post('/api/checkout/cancel', { orderId: 'junk' })).json(), { released: false });
+
+  const second = (await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'L', qty: 1 }] })).json();
+  const s2 = [...t.stripe.sessions.values()][1];
+  s2.payment_status = 'paid'; s2.status = 'complete'; s2.customer_details = { email: 'p@b.co' };
+  assert.deepEqual((await t.post('/api/checkout/cancel', { orderId: second.orderId })).json(), { released: false });
+  assert.equal(t.db.order(second.orderId).status, 'paid', 'a late cancel on a paid checkout settles it instead');
+  assert.equal(left(await t.state(), 'tee', 'L'), 0);
+});
+
+test('a second checkout from the same shopper replaces their own earlier hold', async () => {
+  const t = await setup();
+  const a = (await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'L', qty: 1 }] })).json();
+  const blocked = await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'L', qty: 1 }] });
+  assert.equal(blocked.statusCode, 409, 'a stranger cannot take the held piece');
+  const b = await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'L', qty: 1 }], replaces: a.orderId });
+  assert.equal(b.statusCode, 200, 'the holder can start again');
+  assert.equal(t.db.order(a.orderId).status, 'expired');
+});
+
+test('a webhook that fails halfway is not marked as handled, so the retry works', async () => {
+  const t = await setup();
+  await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'M', qty: 1 }] });
+  const [s] = [...t.stripe.sessions.values()];
+  const realPaid = t.db.markPaid;
+  t.db.markPaid = () => { throw new Error('disk hiccup'); };
+  const orig = console.error; console.error = () => {};
+  assert.equal((await t.paid(s.id)).statusCode, 500);
+  console.error = orig;
+  t.db.markPaid = realPaid;
+  assert.equal((await t.paid(s.id)).statusCode, 200);
+  assert.equal(t.db.orderBySession(s.id).status, 'paid');
+});
+
+test('admin refuses a form posted from another site or an opaque origin', async () => {
+  const t = await setup();
+  await t.post('/api/checkout', { items: [{ productId: 'tee', size: 'M', qty: 1 }] });
+  const [s] = [...t.stripe.sessions.values()];
+  await t.paid(s.id);
+  const order = t.db.orderBySession(s.id);
+  const auth = { authorization: `Basic ${Buffer.from('keeper:pw').toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' };
+  for (const origin of ['null', 'https://evil.example']) {
+    const res = await t.app.inject({ method: 'POST', url: `/admin/orders/${order.id}`, headers: { ...auth, origin }, payload: 'action=shipped&value=X' });
+    assert.equal(res.statusCode, 403);
+  }
+  assert.notEqual(t.db.order(order.id).fulfillment, 'shipped');
+});

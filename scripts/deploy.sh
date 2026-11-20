@@ -6,6 +6,13 @@ cd "$(dirname "$0")/.."
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git remote get-url origin >/dev/null 2>&1; then
   git pull --ff-only || echo "(git pull skipped: local changes or no upstream)"
 fi
+# data/ must belong to you, not root, or the Engine cannot write its database.
+mkdir -p data/backups
+if [ ! -w data ] || [ -n "$(find data -maxdepth 2 ! -user "$(id -u)" -print -quit 2>/dev/null)" ]; then
+  echo "data/ is owned by another user. Fixing that (your sudo password may be asked)..."
+  sudo chown -R "$(id -u):$(id -g)" data
+fi
+export ENGINE_UID="$(id -u)" ENGINE_GID="$(id -g)"
 docker compose build
 docker compose up -d
 echo "Waiting for the Engine..."

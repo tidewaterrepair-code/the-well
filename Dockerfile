@@ -11,7 +11,13 @@ FROM node:22-bookworm-slim
 ENV NODE_ENV=production CONFIG_DIR=/app/config DATA_DIR=/app/data WEB_DIR=/app/web/dist PORT=8787
 WORKDIR /app/api
 COPY api/package*.json ./
-RUN npm ci --omit=dev && mkdir -p /app/data && chown node:node /app/data
+# better-sqlite3 ships ready-made Linux binaries. Without --ignore-scripts npm
+# tries to compile it from source, which fails here (no compiler in the slim
+# image). The second command proves the binary loads, so a bad build fails now
+# instead of on the server.
+RUN npm ci --omit=dev --ignore-scripts \
+ && node -e "new (require('better-sqlite3'))(':memory:').prepare('select 1').get()" \
+ && mkdir -p /app/data && chown node:node /app/data
 COPY api/src ./src
 COPY --from=web /src/web/dist /app/web/dist
 EXPOSE 8787

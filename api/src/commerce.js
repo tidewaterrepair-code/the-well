@@ -66,10 +66,10 @@ export function createCommerce({ env, db, stripe, getConfig, notify, clock }) {
         ...(env.stripeTax ? { automatic_tax: { enabled: true } } : {}),
         expires_at: Math.floor(now / 1000) + HOLD_MINUTES * 60,
         success_url: `${env.publicUrl}/thanks?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${env.publicUrl}/?c=${products.get(items[0].productId).chamberId}`,
+        cancel_url: `${env.publicUrl}/?c=${products.get(items[0].productId).chamberId}&released=${id}`,
       });
       db.setSession(id, session.id);
-      return { url: session.url };
+      return { url: session.url, orderId: id };
     } catch (err) {
       db.expire(db.order(id));
       console.error('[checkout] Stripe refused the session:', err.message);
@@ -109,9 +109,41 @@ export function createCommerce({ env, db, stripe, getConfig, notify, clock }) {
     });
   }
 
+  /**
+   * Release a pending order's hold early. Closes the Stripe checkout first, so it can
+   * no longer be paid; if Stripe says it was already paid, nothing is released.
+   */
+  async function cancelHold(orderId) {
+    if (!/^[0-9a-f-]{36}$/.test(orderId)) return false;
+    const order = db.order(orderId);
+    if (!order || order.status !== 'pending') return false;
+    if (stripe && order.stripe_session_id) {
+      try {
+        const s = await stripe.checkout.sessions.retrieve(order.stripe_session_id);
+        if (s.payment_status === 'paid') { settlePaid(s); return false; }
+        if (s.status === 'complete') return false; // payment still settling: keep the hold
+        if (s.status === 'open') await stripe.checkout.sessions.expire(s.id);
+      } catch (err) {
+        console.error(`[cancel] order ${orderId}: ${err.message}`);
+        return false; // unsure: keep the hold; the sweep settles it later
+      }
+    }
+    db.expire(order);
+    return true;
+  }
+
   /** Handle a verified Stripe event. Running the same event twice changes nothing. */
   function handleEvent(event) {
     if (!db.firstTime(event.id, clock())) return;
+    try {
+      applyEvent(event);
+    } catch (err) {
+      db.forgetEvent(event.id);
+      throw err;
+    }
+  }
+
+  function applyEvent(event) {
     const session = event.data?.object;
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       if (session.payment_status === 'paid' || session.payment_status === 'no_payment_required') settlePaid(session);
@@ -137,5 +169,5 @@ export function createCommerce({ env, db, stripe, getConfig, notify, clock }) {
     }
   }
 
-  return { startCheckout, handleEvent, sweep, describe };
+  return { startCheckout, cancelHold, handleEvent, sweep, describe };
 }

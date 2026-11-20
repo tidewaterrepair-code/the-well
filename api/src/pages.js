@@ -72,13 +72,15 @@ export function thanksPage(order, lore) {
       <p class="center muted">${esc(lore.thanksLine || 'THE WELL KEEPS WHAT IT IS GIVEN.')}</p>
       <p class="center">A receipt is on its way to ${esc(order.email || 'your email')}. A lantern now burns for you on the Engine.</p>
       <p class="center"><a class="btn" href="/?soul=${order.soul_number}">Find your lantern</a></p>
-      <script>try{localStorage.removeItem('well.cart')}catch(e){}</script>`);
+      <script>try{localStorage.removeItem('well.cart');localStorage.removeItem('well.pending');sessionStorage.removeItem('well.wait')}catch(e){}</script>`);
   }
   // Paid on Stripe but the webhook has not landed yet: wait and look again.
   return shell('The Well is counting', `
     <p class="big">The Well<br>is counting</p>
-    <p class="center muted">Your payment is being confirmed. This page will update on its own.</p>
-    <script>setTimeout(function(){location.reload()},3000)</script>`);
+    <p class="center muted" id="wait">Your payment is being confirmed. This page will update on its own.</p>
+    <p class="center muted" id="slow" hidden>This is taking longer than it should. If you were charged, Stripe has emailed your receipt and your order is safe: the Well settles every payment within a few minutes. You can close this page.</p>
+    <script>(function(){var n=0;try{n=+(sessionStorage.getItem('well.wait')||0);sessionStorage.setItem('well.wait',n+1)}catch(e){}
+    if(n<20){setTimeout(function(){location.reload()},3000)}else{document.getElementById('wait').hidden=true;document.getElementById('slow').hidden=false}})()</script>`);
 }
 
 const when = (ms) => (ms ? new Date(ms).toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'short', timeStyle: 'short' }) : '');

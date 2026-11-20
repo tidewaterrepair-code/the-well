@@ -53,7 +53,7 @@ placeholders cut from the turntable contact sheet.
 
 ## Checking it
 
-    cd api && npm test          # 15 tests: stock holds, payments, sell-outs, sigils, admin
+    cd api && npm test          # 20 tests: stock holds, payments, sell-outs, sigils, admin
     cd web && npm run build     # type-checks and builds the site
     cd web && npm run build:demo   # a no-server demo build in web/dist-demo
 
@@ -66,10 +66,22 @@ placeholders cut from the turntable contact sheet.
   because Yoycol's API reference could not be read when this was built. See the
   Yoycol prompt in `docs/PROMPTS.md`.
 
-## Not yet verified
+## What has been verified, and what has not
 
-- The Docker image has not been built (no Docker daemon where this was written).
-  The app itself was run and browser-tested directly with Node 22.
-- Stripe was tested against a stand-in, not the real Stripe. Do the test-card
-  run in the build doc before going live.
-- `n8n/engine-events.json` is a starter and has not been imported into a real n8n.
+Verified (November 2026, in a clean Linux container):
+
+- `docker build` succeeds and the container starts, passes its health check,
+  serves the site, `/shop` and `/admin`, and writes its database and first backup.
+- The real Stripe library against `stripe-mock` (Stripe's official fake server,
+  which rejects anything that breaks Stripe's API rules): checkout sessions with
+  and without Stripe Tax, a properly signed webhook turning into a paid order and
+  a soul, a tampered webhook refused, and the missed-webhook sweep.
+- The full phone flow in a 390x844 browser: sphere, vault, size, cart, checkout
+  to Stripe, back from Stripe with the hold released at once. No console errors.
+
+Still not verified:
+
+- A real Stripe account (do the 4242 test-card run in the build doc).
+- The Yoycol API: its reference could not be reached, so `api/src/yoycol.js` is
+  still a stub. Manual mode does not need it.
+- `n8n/engine-events.json` in your own n8n version.

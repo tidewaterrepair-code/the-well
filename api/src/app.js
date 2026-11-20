@@ -117,9 +117,20 @@ export async function buildApp({ env, db, stripe = null, getConfig, clock = Date
     if (!checkoutLimit(req.ip)) return reply.code(429).send({ error: 'slow_down' });
     const items = normalizeItems(req.body?.items);
     if (!items) return reply.code(400).send({ error: 'bad_cart' });
+    // The same shopper coming back from Stripe without paying: let go of their old hold
+    // first, so they are never blocked by their own reservation.
+    if (typeof req.body?.replaces === 'string') await commerce.cancelHold(req.body.replaces);
     const out = await commerce.startCheckout(items, { unlocked: unlockedFor(req) });
     if (out.error) return reply.code(out.status).send({ error: out.error, items: out.items });
-    return { url: out.url };
+    return { url: out.url, orderId: out.orderId };
+  });
+
+  // "Back" on Stripe's page: close that checkout and put the pieces back on sale now,
+  // not in 30 minutes. Only the shopper knows the order id (a random UUID).
+  app.post('/api/checkout/cancel', async (req, reply) => {
+    if (!checkoutLimit(req.ip)) return reply.code(429).send({ error: 'slow_down' });
+    const released = await commerce.cancelHold(String(req.body?.orderId || ''));
+    return { released };
   });
 
   app.post('/api/stripe/webhook', async (req, reply) => {
@@ -130,7 +141,13 @@ export async function buildApp({ env, db, stripe = null, getConfig, clock = Date
     } catch (err) {
       return reply.code(400).send({ error: 'bad_signature' });
     }
-    commerce.handleEvent(event);
+    try {
+      commerce.handleEvent(event);
+    } catch (err) {
+      // Not recorded as handled, so Stripe's retry (and the sweep) will try again.
+      console.error(`[webhook] ${event.type} ${event.id} failed: ${err.stack || err}`);
+      return reply.code(500).send({ error: 'not_processed' });
+    }
     return { received: true };
   });
 
@@ -164,11 +181,13 @@ export async function buildApp({ env, db, stripe = null, getConfig, clock = Date
 
   // ---- admin (always behind ADMIN_USER / ADMIN_PASSWORD)
   app.get('/admin', async (req, reply) => reply.header('cache-control', 'no-store').type('text/html').send(adminPage({
-    orders: db.recent(), stock: [...db.stockMap().values()], describe: commerce.describe, mode: env.fulfillmentMode, yoycolReady: false,
+    orders: db.recent(), stock: [...db.stockMap().values()], describe: commerce.describe, mode: env.fulfillmentMode, yoycolReady: fulfillment.ready,
   })));
   app.post('/admin/orders/:id', async (req, reply) => {
     const origin = req.headers.origin;
-    if (origin && new URL(origin).host !== req.headers.host) return reply.code(403).send('cross-site request refused');
+    let sameSite = true;
+    if (origin) { try { sameSite = new URL(origin).host === req.headers.host; } catch { sameSite = false; } }
+    if (!sameSite) return reply.code(403).send('cross-site request refused');
     const order = db.order(req.params.id);
     if (!order || order.status !== 'paid') return reply.code(404).send('no such paid order');
     const { action, value = '' } = req.body || {};
@@ -193,17 +212,24 @@ export async function buildApp({ env, db, stripe = null, getConfig, clock = Date
   app.setNotFoundHandler((req, reply) => reply.code(404).type('text/plain').send('Nothing rests here.'));
 
   // ---- chamber watcher: tells n8n when a chamber opens or seals
+  // "Sealed" means every piece is paid for. The last pieces sitting in someone's
+  // open checkout do not count: that hold can still expire and reopen the chamber,
+  // and a public "IS SEALED" post must never have to be taken back.
   function watchChambers() {
-    const now = Object.fromEntries(buildState({ cfg: getConfig(), db, now: clock() }).chambers.map((c) => [c.id, c.status]));
+    const state = buildState({ cfg: getConfig(), db, now: clock() });
+    const now = Object.fromEntries(state.chambers.map((c) => [c.id, c.status]));
+    const sealedNow = [...state.sealed];
     const before = JSON.parse(db.kvGet('chamber_status') || 'null');
+    const sealedBefore = JSON.parse(db.kvGet('chamber_sealed') || 'null') ?? sealedNow;
     if (before) {
       for (const c of getConfig().chambers) {
         const data = { chamberId: c.id, numeral: c.numeral, name: c.name };
         if (now[c.id] === 'live' && before[c.id] === 'countdown') notify('chamber.opened', data);
-        if (now[c.id] === 'soldout' && before[c.id] === 'live') notify('chamber.sealed', data);
+        if (c.status === 'live' && sealedNow.includes(c.id) && !sealedBefore.includes(c.id)) notify('chamber.sealed', data);
       }
     }
     db.kvSet('chamber_status', JSON.stringify(now));
+    db.kvSet('chamber_sealed', JSON.stringify(sealedNow));
   }
 
   return { app, commerce, fulfillment, notify, watchChambers, syncStock: () => db.syncStock(getConfig().products) };

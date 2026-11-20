@@ -5,6 +5,9 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    # Run as the server user who owns ./data (deploy.sh fills these in), so the
+    # Engine can always write its database and backups.
+    user: "${ENGINE_UID:-1000}:${ENGINE_GID:-1000}"
     ports:
       - "127.0.0.1:8787:8787"
     volumes:

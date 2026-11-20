@@ -61,5 +61,5 @@ export function createFulfillment({ env, db, notify, clock, describe, adapter = 
     notify('order.shipped', { orderId: order.id, soulNumber: order.soul_number, email: order.email, name: order.ship_to?.name, tracking, trackingUrl });
   }
 
-  return { tick, pollTracking, markShipped, payloadFor };
+  return { tick, pollTracking, markShipped, payloadFor, ready: Boolean(adapter.ready) };
 }

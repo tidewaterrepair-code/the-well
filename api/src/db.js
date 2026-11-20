@@ -67,6 +67,7 @@ export function openDb(file) {
     kvGet: sql.prepare('SELECT v FROM kv WHERE k=?'),
     kvSet: sql.prepare('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v'),
     seenEvent: sql.prepare('INSERT OR IGNORE INTO stripe_events(id,at) VALUES(?,?)'),
+    forgetEvent: sql.prepare('DELETE FROM stripe_events WHERE id=?'),
   };
 
   const parse = (o) => o && { ...o, items: JSON.parse(o.items), ship_to: o.ship_to ? JSON.parse(o.ship_to) : null };
@@ -129,6 +130,7 @@ export function openDb(file) {
     kvSet: (k, v) => q.kvSet.run(k, v),
     /** True the first time a Stripe event id is seen. */
     firstTime: (eventId, at) => q.seenEvent.run(eventId, at).changes > 0,
+    forgetEvent: (eventId) => q.forgetEvent.run(eventId),
     async backup(dir, keep = 14) {
       fs.mkdirSync(dir, { recursive: true });
       const name = `engine-${new Date().toISOString().slice(0, 10)}.db`;

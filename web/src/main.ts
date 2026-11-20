@@ -154,9 +154,14 @@ async function checkout(items: CartLine[]) {
   if (!items.length) return;
   if (DEMO) return ui.toast('THIS IS THE DEMO. ON YOUR SERVER THIS BUTTON OPENS STRIPE CHECKOUT.', 5200);
   try {
-    const r = await fetch('api/checkout', { method: 'POST', headers: headers(), body: JSON.stringify({ items }) });
+    const replaces = store.get<string>('well.pending', '') || undefined;
+    const r = await fetch('api/checkout', { method: 'POST', headers: headers(), body: JSON.stringify({ items, replaces }) });
     const j = await r.json().catch(() => ({}));
-    if (r.ok && j.url) { location.href = j.url; return; }
+    if (r.ok && j.url) {
+      if (j.orderId) store.set('well.pending', j.orderId);
+      location.href = j.url;
+      return;
+    }
     if (r.status === 409) {
       ui.removeLines(j.items || []);
       await refresh();
@@ -167,6 +172,21 @@ async function checkout(items: CartLine[]) {
   } catch {
     ui.toast('NO CONNECTION. NOTHING WAS CHARGED. TRY AGAIN.');
   }
+}
+
+/** Back from Stripe without paying: put the held pieces back on sale right away. */
+async function releaseHold(orderId: string, q: URLSearchParams) {
+  q.delete('released');
+  history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : '') + location.hash);
+  if (store.get<string>('well.pending', '') === orderId) store.set('well.pending', '');
+  if (DEMO) return;
+  try {
+    const r = await fetch('api/checkout/cancel', { method: 'POST', headers: headers(), body: JSON.stringify({ orderId }) });
+    if ((await r.json().catch(() => ({}))).released) {
+      await refresh();
+      ui.toast('CHECKOUT CLOSED. NOTHING WAS CHARGED. YOUR CART IS STILL HERE.', 5200);
+    }
+  } catch { /* the hold simply runs out in 30 minutes */ }
 }
 
 async function signup(email: string, chamberId: string) {
@@ -442,6 +462,8 @@ async function boot() {
   if (DEMO) document.querySelectorAll<HTMLAnchorElement>('a[href="shop"]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); ui.toast('THE PLAIN SHOP PAGE LIVES ON YOUR SERVER, NOT IN THIS DEMO.'); }));
 
   const q = new URLSearchParams(location.search);
+  const released = q.get('released');
+  if (released) void releaseHold(released, q);
   const wanted = state.chambers.find((c) => c.id === q.get('c'));
   const soulN = Number(q.get('soul')) || 0;
   const live = onSphere().filter((c) => c.status === 'live').sort((a, b) => b.remaining - a.remaining);
