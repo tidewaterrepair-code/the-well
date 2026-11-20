@@ -1,0 +1,54 @@
+{
+  "name": "Reckoning Engine events (starter)",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "reckoning-engine", "options": {} },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Engine event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "reckoning-engine"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.body.event }}", "rightValue": "order.paid", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "order.paid" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.body.event }}", "rightValue": "order.attention", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "order.attention" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.body.event }}", "rightValue": "order.shipped", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "order.shipped" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.body.event }}", "rightValue": "chamber.opened", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "chamber.opened" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.body.event }}", "rightValue": "chamber.sealed", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "chamber.sealed" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.body.event }}", "rightValue": "signup.created", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "signup.created" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Which event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [240, 0]
+    },
+    { "parameters": {}, "id": "a1b2c3d4-0003-4000-8000-000000000003", "name": "Alert me: order paid", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [520, -300] },
+    { "parameters": {}, "id": "a1b2c3d4-0004-4000-8000-000000000004", "name": "Alert me: needs attention", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [520, -180] },
+    { "parameters": {}, "id": "a1b2c3d4-0005-4000-8000-000000000005", "name": "Email customer: tracking", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [520, -60] },
+    { "parameters": {}, "id": "a1b2c3d4-0006-4000-8000-000000000006", "name": "Postiz: chamber is open", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [520, 60] },
+    { "parameters": {}, "id": "a1b2c3d4-0007-4000-8000-000000000007", "name": "Postiz: chamber is sealed", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [520, 180] },
+    { "parameters": {}, "id": "a1b2c3d4-0008-4000-8000-000000000008", "name": "Save signup", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [520, 300] }
+  ],
+  "connections": {
+    "Engine event": { "main": [[{ "node": "Which event", "type": "main", "index": 0 }]] },
+    "Which event": {
+      "main": [
+        [{ "node": "Alert me: order paid", "type": "main", "index": 0 }],
+        [{ "node": "Alert me: needs attention", "type": "main", "index": 0 }],
+        [{ "node": "Email customer: tracking", "type": "main", "index": 0 }],
+        [{ "node": "Postiz: chamber is open", "type": "main", "index": 0 }],
+        [{ "node": "Postiz: chamber is sealed", "type": "main", "index": 0 }],
+        [{ "node": "Save signup", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

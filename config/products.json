@@ -1,0 +1,32 @@
+[
+  {
+    "id": "weight-you-wear",
+    "chamberId": "iv",
+    "name": "THE WEIGHT YOU WEAR",
+    "description": "More than fabric. A reminder. Some truths never leave.",
+    "priceCents": 3800,
+    "images": ["img/products/placeholder-1.svg", "img/products/placeholder-2.svg"],
+    "sizes": [
+      { "size": "S", "limit": 10, "yoycolSku": "" },
+      { "size": "M", "limit": 10, "yoycolSku": "" },
+      { "size": "L", "limit": 10, "yoycolSku": "" },
+      { "size": "XL", "limit": 10, "yoycolSku": "" },
+      { "size": "2XL", "limit": 10, "yoycolSku": "" }
+    ]
+  },
+  {
+    "id": "frozen-hearts",
+    "chamberId": "iv",
+    "name": "FROZEN HEARTS DON'T BLEED",
+    "description": "Cold is not the absence of feeling. It is what remains after.",
+    "priceCents": 3800,
+    "images": ["img/products/placeholder-2.svg", "img/products/placeholder-1.svg"],
+    "sizes": [
+      { "size": "S", "limit": 10, "yoycolSku": "" },
+      { "size": "M", "limit": 10, "yoycolSku": "" },
+      { "size": "L", "limit": 10, "yoycolSku": "" },
+      { "size": "XL", "limit": 10, "yoycolSku": "" },
+      { "size": "2XL", "limit": 10, "yoycolSku": "" }
+    ]
+  }
+]

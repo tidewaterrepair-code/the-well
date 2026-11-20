@@ -1,0 +1,14 @@
+# Copy to ../docker-compose.override.yml and adjust the two marked names.
+services:
+  engine:
+    networks: [proxy]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.engine.rule=Host(`engine.buildblackwell.com`)
+      - traefik.http.routers.engine.entrypoints=websecure
+      - traefik.http.routers.engine.tls.certresolver=mytlschallenge   # <- same resolver name your n8n labels use
+      - traefik.http.services.engine.loadbalancer.server.port=8787
+networks:
+  proxy:
+    external: true
+    name: root_default   # <- the network Traefik is on:  docker network ls

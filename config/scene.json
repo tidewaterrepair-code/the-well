@@ -1,0 +1,16 @@
+{
+  "ring": {
+    "frames": 72,
+    "sizes": [640],
+    "ext": "webp",
+    "aspect": 1.3333,
+    "version": "demo1",
+    "dir": 1,
+    "sphere": { "cx": 0.5, "cy": 0.5, "r": 0.375 }
+  },
+  "sigils": [
+    { "id": "a", "frame": 9, "lat": -38 },
+    { "id": "b", "frame": 31, "lat": 42 },
+    { "id": "c", "frame": 60, "lat": -24 }
+  ]
+}

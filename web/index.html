@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Black Well | The Reckoning Engine</title>
+  <meta name="description" content="The Reckoning Engine. A machine for those who still feel something. Limited drops from The Black Well.">
+  <meta name="theme-color" content="#050506">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050506'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23e8e2d6' stroke-width='1.5'/%3E%3Cpath d='M16 4v24' stroke='%23ffb574' stroke-width='2'/%3E%3C/svg%3E">
+  <meta property="og:title" content="The Black Well">
+  <meta property="og:description" content="Descend. Wear. Belong.">
+</head>
+<body>
+  <div id="stage" aria-hidden="true">
+    <canvas id="gl"></canvas>
+    <img id="still" alt="" hidden>
+    <canvas id="fx"></canvas>
+  </div>
+
+  <div id="hud">
+    <header class="top">
+      <nav class="nav-l" aria-label="Site">
+        <button class="menu" data-sheet="chambers" aria-label="Menu"><i></i><i></i><i></i></button>
+        <a class="lnk wide" href="shop" id="shopLink">SHOP</a>
+        <button class="lnk wide" data-sheet="lore">LORE</button>
+        <button class="lnk wide" data-sheet="chambers">CHAMBERS</button>
+        <button class="lnk wide" data-sheet="archive">ARCHIVE</button>
+      </nav>
+      <div class="mast">
+        <h1 id="masthead">THE BLACK WELL</h1>
+        <p id="creed">DESCEND / WEAR / BELONG</p>
+        <div class="load"><i id="loadbar"></i></div>
+      </div>
+      <div class="nav-r">
+        <button class="lnk wide" id="sound" aria-pressed="false">SOUND OFF</button>
+        <button class="lnk" id="cartBtn">CART (0)</button>
+      </div>
+    </header>
+
+    <aside class="left wide">
+      <h2 id="title"></h2>
+      <p class="sub" id="subtitle"></p>
+      <p class="intro" id="intro"></p>
+      <hr>
+      <button class="act" id="actExplore"><i class="ic orbit"></i>EXPLORE THE SPHERE</button>
+      <button class="act" id="actEnter"><i class="ic dot"></i>ENTER CHAMBER</button>
+      <a class="act" href="shop" id="actShop"><i class="ic tri"></i>VIEW COLLECTION</a>
+      <div class="wellcard">
+        <b id="soulCount">0</b>
+        <span>SOULS HAVE DESCENDED</span>
+        <small id="onlineLine"></small>
+      </div>
+    </aside>
+
+    <div id="spots"></div>
+
+    <aside class="hints wide">
+      <span><i class="ic drag"></i>DRAG TO ROTATE</span>
+      <span><i class="ic wheel"></i>SCROLL TO ZOOM</span>
+      <span><i class="ic dot"></i>CLICK TO ENTER</span>
+    </aside>
+
+    <div class="phonebar narrow">
+      <p id="phoneLine"></p>
+      <button id="enterBtn">ENTER</button>
+      <nav id="chips" aria-label="Chambers"></nav>
+    </div>
+
+    <footer class="foot">
+      <span id="tagL"></span>
+      <span id="footer" class="wide"></span>
+      <span id="tagR" class="wide"></span>
+    </footer>
+
+    <section id="vault" aria-live="polite" hidden></section>
+    <section id="cart" hidden></section>
+    <section id="sheet" hidden></section>
+    <div id="toast" role="status"></div>
+    <div id="tip"></div>
+    <div id="veil"><p>THE WELL IS WAKING</p></div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

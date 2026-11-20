@@ -1,0 +1,30 @@
+{
+  "masthead": "THE BLACK WELL",
+  "creed": "DESCEND / WEAR / BELONG",
+  "title": "THE RECKONING ENGINE",
+  "subtitle": "A MACHINE FOR THOSE WHO STILL FEEL SOMETHING.",
+  "intro": "Part cathedral. Part prison. Part salvation. The Black Well consumes, refines, and reveals. Each chamber holds a story. Each descent, a choice.",
+  "footer": "A DEEPER KIND OF WEAR",
+  "cartLabel": "CART",
+  "taglines": ["BEAUTY LIVES BELOW", "SOME PLACES CHANGE YOU"],
+  "returnVisitLines": [
+    "THE WELL REMEMBERS WHO RETURNS.",
+    "NOTHING DESCENDS TWICE THE SAME WAY.",
+    "WHAT WAS SEEN ONCE IS OWED A SECOND LOOK.",
+    "THE THIRD DESCENT IS NEVER AN ACCIDENT.",
+    "THOSE WHO COUNT THE LANTERNS ARE COUNTED IN TURN.",
+    "THREE MARKS HIDE WHERE THE LIGHT DOES NOT REACH."
+  ],
+  "afterMidnightLines": [
+    "THE DEAD HOURS KEEP THEIR OWN LEDGER.",
+    "AFTER MIDNIGHT THE WELL STOPS PRETENDING TO SLEEP.",
+    "WHAT IS AWAKE NOW WAS NEVER MEANT TO REST."
+  ],
+  "soldOutLine": "SEALED. THE WELL KEEPS WHAT IT TAKES.",
+  "lockedLine": "THE ASCENT IS NOT OFFERED. IT IS FOUND.",
+  "dormantLine": "THIS CHAMBER HAS NOT YET WOKEN.",
+  "countdownLine": "THE CHAMBER OPENS WHEN THE COUNT ENDS.",
+  "unlockLine": "THE SEAL BREAKS FOR THOSE WHO LOOKED.",
+  "thanksLine": "THE WELL KEEPS WHAT IT IS GIVEN.",
+  "nothingLive": "NOTHING IS OFFERED. THE WELL WAITS."
+}

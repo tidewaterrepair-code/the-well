@@ -1,0 +1,15 @@
+# The whole store is this one container. It listens only on this machine
+# (127.0.0.1:8787); your existing reverse proxy puts it on the internet.
+services:
+  engine:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - ./config:/app/config:ro   # edit drops without rebuilding
+      - ./data:/app/data          # the database and its nightly backups
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
